@@ -1,0 +1,82 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id       String  @id @default(uuid())
+  email    String  @unique
+  password String?
+  username String? @default("")
+
+  about     String    @default("")
+  city      String    @default("")
+  sex       String    @default("")
+  img       String?   @default("")
+  provider  Provider?
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  roles     Role[]
+  Token     Token[]
+  Book      Book[]
+
+  @@map("users")
+}
+
+model Token {
+  token     String   @unique
+  exp       DateTime
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  userAgent String   @map("user_agent")
+
+  @@map("tokens")
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+enum Provider {
+  GOOGLE
+  YANDEX
+}
+
+model Chapter {
+  id     String @id @default(uuid()) @map("_id")
+  number Float
+  text   String
+  book   Book   @relation(fields: [bookId], references: [id])
+  bookId String
+}
+
+model Tags {
+  id    String @id @default(uuid()) @map("_id")
+  value String @unique
+}
+
+model Genres {
+  id    String @id @default(uuid()) @map("_id")
+  value String @unique
+}
+
+model Book {
+  id          String    @id @default(uuid()) @map("_id")
+  chapters    Chapter[]
+  img         String
+  description String
+  tags        String[]
+  genres      String[]
+  added       User      @relation(fields: [userId], references: [id])
+  name        String    @unique
+  userId      String
+  author      String
+}
