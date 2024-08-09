@@ -1,14 +1,14 @@
-import {ForbiddenException, HttpStatus, Inject, Injectable} from '@nestjs/common';
-import {PrismaService} from '@prisma/prisma.service';
-import {Role, User} from '@prisma/client';
-import {genSaltSync, hashSync} from 'bcrypt';
-import {JwtPayload} from '@auth/interfaces';
-import {CACHE_MANAGER} from '@nestjs/cache-manager';
-import {Cache} from 'cache-manager';
-import {ConfigService} from '@nestjs/config';
-import {convertToSecondsUtil} from '@common/utils';
-import {UploadService} from "../upload/upload.service";
-import {UploadDirEnum} from "../upload/types";
+import { ForbiddenException, HttpStatus, Inject, Injectable } from '@nestjs/common';
+import { PrismaService } from '@prisma/prisma.service';
+import { Role, User } from '@prisma/client';
+import { genSaltSync, hashSync } from 'bcrypt';
+import { JwtPayload } from '@auth/interfaces';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
+import { ConfigService } from '@nestjs/config';
+import { convertToSecondsUtil } from '@common/utils';
+import { UploadService } from '../upload/upload.service';
+import { UploadDirEnum } from '../upload/types';
 
 @Injectable()
 export class UserService {
@@ -17,18 +17,11 @@ export class UserService {
         @Inject(CACHE_MANAGER) private cacheManager: Cache,
         private readonly configService: ConfigService,
         private readonly uploadService: UploadService,
-    ) {}
+    ) {
+    }
 
     async save(user: Partial<User>) {
         const hashedPassword = user?.password ? this.hashPassword(user.password) : null;
-        // const savedUser = await this.prismaService.user.create({
-        //     data: {
-        //         email: user.email,
-        //         password: hashedPassword,
-        //         roles: ['USER'],
-        //         provider: user.provider
-        //     },
-        // });
         const savedUser = await this.prismaService.user.upsert({
             where: {
                 email: user.email,
@@ -59,7 +52,7 @@ export class UserService {
         if (!user) {
             const user = await this.prismaService.user.findFirst({
                 where: {
-                    OR: [{id: idOrEmail}, {email: idOrEmail}],
+                    OR: [{ id: idOrEmail }, { email: idOrEmail }],
                 },
             });
             if (!user) {
@@ -79,15 +72,15 @@ export class UserService {
         await Promise.all([this.cacheManager.del(id), this.cacheManager.del(user.email)]);
 
         // Проверяем наличие связанных записей в таблице 'tokens'
-        const tokens = await this.prismaService.token.findMany({where: {userId: id}});
+        const tokens = await this.prismaService.token.findMany({ where: { userId: id } });
 
         if (tokens.length > 0) {
             // Обрабатываем связанные записи в 'tokens' (например, удаляем их)
-            await this.prismaService.token.deleteMany({where: {userId: id}});
+            await this.prismaService.token.deleteMany({ where: { userId: id } });
         }
 
         // Удаляем пользователя
-        return this.prismaService.user.delete({where: {id}, select: {id: true}});
+        return this.prismaService.user.delete({ where: { id }, select: { id: true } });
     }
 
     // async change(idOrEmail: string, body: any, img: Express.Multer.File) {
@@ -158,19 +151,19 @@ export class UserService {
     async change(idOrEmail: string, body: any, img: Express.Multer.File) {
         const user = await this.prismaService.user.findFirst({
             where: {
-                OR: [{id: idOrEmail}, {email: idOrEmail}],
+                OR: [{ id: idOrEmail }, { email: idOrEmail }],
             },
         });
 
         if (!user) {
-            return {status: HttpStatus.NOT_FOUND};
+            return { status: HttpStatus.NOT_FOUND };
         }
 
         await Promise.all([this.cacheManager.del(idOrEmail), this.cacheManager.del(user.email)]);
         const { password, repeatPassword, ...userData } = body;
 
         if (password && repeatPassword && password !== repeatPassword) {
-            return {status: HttpStatus.UNAUTHORIZED, message: 'Пароли не совпадают'};
+            return { status: HttpStatus.UNAUTHORIZED, message: 'Пароли не совпадают' };
         }
 
         const updateData: any = { ...userData };
@@ -185,17 +178,17 @@ export class UserService {
             }
             const filteredImg = await this.uploadService.filterFile(img);
             const newImg = await this.uploadService.saveFile(filteredImg, UploadDirEnum.USER);
-            updateData.img = newImg.name
+            updateData.img = newImg.name;
         }
 
         const updatedUser = await this.prismaService.user.update({
-            where: {id: user.id},
+            where: { id: user.id },
             data: updateData,
         });
 
         await this.cacheManager.set(idOrEmail, updatedUser, convertToSecondsUtil(this.configService.get('JWT_EXP')));
 
-        return {status: HttpStatus.OK};
+        return { status: HttpStatus.OK };
     }
 
     private hashPassword(password: string): string {

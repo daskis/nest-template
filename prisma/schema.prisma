@@ -11,21 +11,14 @@ datasource db {
 }
 
 model User {
-  id       String  @id @default(uuid())
-  email    String  @unique
-  password String?
-  username String? @default("")
-
-  about     String    @default("")
-  city      String    @default("")
-  sex       String    @default("")
-  img       String?   @default("")
-  provider  Provider?
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String?
+  img       String?  @default("")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
   roles     Role[]
   Token     Token[]
-  Book      Book[]
 
   @@map("users")
 }
@@ -43,40 +36,4 @@ model Token {
 enum Role {
   ADMIN
   USER
-}
-
-enum Provider {
-  GOOGLE
-  YANDEX
-}
-
-model Chapter {
-  id     String @id @default(uuid()) @map("_id")
-  number Float
-  text   String
-  book   Book   @relation(fields: [bookId], references: [id])
-  bookId String
-}
-
-model Tags {
-  id    String @id @default(uuid()) @map("_id")
-  value String @unique
-}
-
-model Genres {
-  id    String @id @default(uuid()) @map("_id")
-  value String @unique
-}
-
-model Book {
-  id          String    @id @default(uuid()) @map("_id")
-  chapters    Chapter[]
-  img         String
-  description String
-  tags        String[]
-  genres      String[]
-  added       User      @relation(fields: [userId], references: [id])
-  name        String    @unique
-  userId      String
-  author      String
 }

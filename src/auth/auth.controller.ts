@@ -6,25 +6,16 @@ import {
     Get,
     HttpStatus,
     Post,
-    Query,
-    Req,
     Res,
     UnauthorizedException,
-    UseGuards,
     UseInterceptors,
 } from '@nestjs/common';
 import { LoginDto, RegisterDto } from '@auth/dto';
 import { AuthService } from '@auth/auth.service';
 import { Tokens } from '@auth/interfaces';
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { Cookie, Public, UserAgent } from '@common/decorators';
-import { GoogleGuard } from '@auth/guards/google.guard';
-import { HttpService } from '@nestjs/axios';
-import { map, mergeMap } from 'rxjs';
-import { handleTimeoutAndErrors } from '@common/helpers';
-import { YandexGuard } from '@auth/guards/yandex.guard';
-import { Provider } from '@prisma/client';
 
 export const REFRESH_TOKEN = 'refreshtoken';
 
@@ -34,7 +25,6 @@ export class AuthController {
     constructor(
         private readonly authService: AuthService,
         private readonly configService: ConfigService,
-        private readonly httpService: HttpService,
     ) {
     }
 
@@ -99,50 +89,5 @@ export class AuthController {
             path: '/',
         });
         res.status(HttpStatus.CREATED).json({ accessToken: tokens.accessToken });
-    }
-
-    @UseGuards(GoogleGuard)
-    @Get('google')
-    googleAuth() {
-    }
-
-    @UseGuards(GoogleGuard)
-    @Get('google/callback')
-    googleAuthCallback(@Req() req: Request, @Res() res: Response) {
-        const token = req.user['accessToken'];
-        return res.redirect(`http://localhost:3000/api/auth/success-google?token=${token}`);
-    }
-
-    @Get('success-google')
-    successGoogle(@Query('token') token: string, @UserAgent() agent: string, @Res() res: Response) {
-        return this.httpService.get(`https://www.googleapis.com/oauth2/v3/tokeninfo?access_token=${token}`).pipe(
-            mergeMap(({ data: { email } }) => this.authService.providerAuth(email, agent, Provider.GOOGLE)),
-            map((data) => this.setRefreshTokenToCookie(data, res)),
-            handleTimeoutAndErrors(),
-        );
-    }
-
-    @UseGuards(YandexGuard)
-    @Get('yandex')
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
-    yandexAuth() {
-    }
-
-    @UseGuards(YandexGuard)
-    @Get('yandex/callback')
-    yandexAuthCallback(@Req() req: Request, @Res() res: Response) {
-        const token = req.user['accessToken'];
-        return res.redirect(`http://localhost:3000/api/auth/success-yandex?token=${token}`);
-    }
-
-    @Get('success-yandex')
-    successYandex(@Query('token') token: string, @UserAgent() agent: string, @Res() res: Response) {
-        return this.httpService.get(`https://login.yandex.ru/info?format=json&oauth_token=${token}`).pipe(
-            mergeMap(({ data: { default_email } }) =>
-                this.authService.providerAuth(default_email, agent, Provider.YANDEX),
-            ),
-            map((data) => this.setRefreshTokenToCookie(data, res)),
-            handleTimeoutAndErrors(),
-        );
     }
 }
